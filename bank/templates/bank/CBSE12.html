@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBSE Class 12 Resources</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f9fafa;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .header img {
+            width: 40px;
+            margin-right: 10px;
+        }
+
+        .header h2 {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .container {
+            background-color: rgb(72, 161, 152);
+            max-width: 100%;
+            margin: 0px auto;
+            border-radius: 0px;
+            padding: 30px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            min-height: 100vh;
+        }
+
+        .container-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #fff;
+            margin-bottom: 50px;
+            font-size: 40px;
+        }
+
+        .container-header h3 {
+            margin: 0;
+        }
+
+        .container-header .search {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+        }
+
+        .grid-item {
+            background-color: #fff;
+            border-radius: 20px;
+            padding: 25px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .grid-item:hover {
+            transform: translateY(-4px);
+        }
+
+        .grid-item img {
+            width: 24px;
+            margin-right: 10px;
+        }
+
+        .grid-item span {
+            font-size: 20px;
+            color: #333;
+        }
+        .nav-links ul li{
+        display: block;
+    }
+    .nav-links{
+        position: absolute;
+        background: #57a2b5;
+        height: 100vh;
+        width: 200px;
+        top:0;
+        right: -200px;
+        text-align: left;
+        z-index: 2;
+        transition: 1s;
+
+    }
+    nav .fa{
+        display: block;
+        color: #ba1e1e;
+        margin: 10px;
+        font-size: 22px;
+        cursor: pointer;
+
+    text-align: right;
+    }
+    .nav-links ul{
+        padding: 30px;
+    }
+    .nav-links ul li a{
+    color: white;
+    text-decoration: none;
+    font-size: 18px;
+    font-family: Arial;
+}
+.link{
+    text-decoration: none;
+    color: inherit;
+}
+
+
+    </style>
+</head>
+<body>
+
+
+    <div class="container">
+        <div class="container-header">
+            <h3 >CBSE - 12</h3>
+            <div class="search">
+                <nav>
+                    <div class="nav-links" id="navLinks">
+                        <i class="fa fa-times-circle" onclick="hidemenu()"></i>
+                        <ul>
+                            <li><a href="{% url 'dashboard' %}">HOME</a></li>
+                            <li><a href="{% url 'CBSE12' %}">CBSE 12 </a></li>
+                            <li><a href="{% url 'PSEB12' %}">PSEB 12 </a></li>
+                            <li><a href="{% url 'CBSE10' %}">CBSE 10 </a></li>
+                            <li><a href="{% url 'PSEB10' %}">PSEB 10</a></li>
+                        </ul>
+                    </div>
+                    <i class="fa fa-bars" onclick="showmenu()"></i>
+                </nav>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="grid-item">
+                <a class=link href="{% url 'material1112' %}">
+                <img src="https://img.icons8.com/ios-filled/50/000000/document.png" alt="icon">
+                NCERT TextBooks 2024–25</a>
+            </div>
+            <div class="grid-item">
+                <a class=link href="{% url 'material1212' %}">
+                <img src="https://img.icons8.com/ios-filled/50/000000/document.png" alt="icon">
+                NCERT Solution</a>
+            </div>
+        
+            <div class="grid-item">
+                <a class=link href="{% url 'material1312' %}">
+                <img src="https://img.icons8.com/ios-filled/50/000000/document.png" alt="icon">
+                NCERT Exemplar Books</a>
+            </div>
+            <div class="grid-item">
+                <a class=link href="{% url 'material1412' %}">
+                <img src="https://img.icons8.com/ios-filled/50/000000/document.png" alt="icon">
+                NCERT Exemplar Solution</a>
+            </div>
+            <div class="grid-item">
+                <a class=link href="{% url 'material1512' %}">
+                <img src="https://img.icons8.com/ios-filled/50/000000/document.png" alt="icon">
+                NCERT Notes</a>
+            </div>
+            <div class="grid-item">
+                <a class=link href="{% url 'material1612' %}">
+                <img src="https://img.icons8.com/ios-filled/50/000000/document.png" alt="icon">
+                CBSE Sample Paper</a>
+            </div>
+            <div class="grid-item">
+                <a class=link href="{% url 'material1712' %}">
+                <img src="https://img.icons8.com/ios-filled/50/000000/document.png" alt="icon">
+                Previous Year Paper</a>
+            </div>
+ 
+            <div class="grid-item">
+                <a class=link href="{% url 'material1812' %}">
+                <img src="https://img.icons8.com/ios-filled/50/000000/document.png" alt="icon">
+                CBSE Syllabus</a>
+            </div>
+ 
+            <div class="grid-item">
+                <a class=link href="{% url 'material1912' %}">
+                <img src="https://img.icons8.com/ios-filled/50/000000/document.png" alt="icon">
+                Competitive Exam</a>
+            </div>
+            <div class="grid-item">
+                <a class=link href="{% url 'material2012' %}">
+                <img src="https://img.icons8.com/ios-filled/50/000000/document.png" alt="icon">
+                MCQ Test</a>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        var navLinks = document.getElementById("navLinks");
+        function showmenu(){
+            navLinks.style.right = "0";
+        }
+        function hidemenu(){
+            navLinks.style.right = "-200px";
+        }
+    
+    </script>
+
+</body>
+</html>
