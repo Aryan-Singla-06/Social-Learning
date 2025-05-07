@@ -1,0 +1,1194 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Planner with Chatbot</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to bottom, #e8f5e9, #ffffff);
+            margin: 0;
+            padding: 0;
+        }
+
+        header, footer {
+            background: #2E8B57;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+        }
+
+        header nav ul {
+            list-style: none;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        header nav ul li a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 2rem;
+            background: linear-gradient(to bottom, rgba(46, 139, 87, 0.3), rgba(46, 139, 87, 0.05));
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            color: #2E8B57;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            color: #333;
+            max-width: 32rem;
+            margin: 0 auto;
+        }
+
+        .tabs {
+            padding: 2rem 1rem;
+            max-width: 80rem;
+            margin: 0 auto;
+        }
+
+        .tab-list {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .tab-trigger {
+            padding: 0.5rem 1rem;
+            border: none;
+            background: #f0f0f0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-trigger.active {
+            background: #2E8B57;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .card-header {
+            background: #2E8B57;
+            color: white;
+            padding: 1rem;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            background: #2E8B57;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .task-list .task {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background: #f7f7f7;
+        }
+
+        .task.completed {
+            background: #e6ffe6;
+        }
+
+        .task input {
+            margin-right: 0.5rem;
+            width: auto;
+        }
+
+        .task label {
+            flex: 1;
+            margin: 0;
+        }
+
+        .task.completed label {
+            text-decoration: line-through;
+            color: #666;
+        }
+
+        .badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            margin-left: 0.5rem;
+        }
+
+        .badge.high {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge.medium {
+            background: #ffc107;
+            color: black;
+        }
+
+        .badge.low {
+            background: #28a745;
+            color: white;
+        }
+
+        .time-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .time-buttons button {
+            padding: 1rem;
+            background: #fff;
+            border: 1px solid #2E8B57;
+            color: #2E8B57;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .progress-circle {
+            width: 5rem;
+            height: 5rem;
+            border-radius: 50%;
+            background: #e6ffe6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 4px solid #2E8B57;
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #2E8B57;
+        }
+
+        .calendar-placeholder {
+            background: #f0f0f0;
+            padding: 2rem;
+            text-align: center;
+            border-radius: 8px;
+        }
+
+        .schedule-item {
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            background: #fff7e6;
+            border: 1px solid #ffd700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .goal-list .goal {
+            padding: 1rem;
+            background: #e6ffe6;
+            border: 1px solid #2E8B57;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .achievement {
+            padding: 1rem;
+            background: #e6ffe6;
+            border: 1px solid #2E8B57;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .achievement.locked {
+            background: #f0f0f0;
+            border-color: #ccc;
+        }
+
+        .progress-bar {
+            background: #f0f0f0;
+            border-radius: 4px;
+            height: 10px;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar > div {
+            background: #2E8B57;
+            height: 100%;
+            border-radius: 4px;
+        }
+
+        .stat {
+            margin-bottom: 1rem;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .summary-item {
+            background: #e6ffe6;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #2E8B57;
+        }
+
+        .recommendation {
+            padding: 1rem;
+            background: #fff7e6;
+            border: 1px solid #ffd700;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Chatbot Styles */
+        .chatbot-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .chatbot-toggle {
+            background: #2E8B57;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, background 0.3s;
+        }
+
+        .chatbot-toggle:hover {
+            transform: scale(1.1);
+            background: #3aa66a;
+        }
+
+        .chatbot {
+            display: none;
+            width: 320px;
+            height: 450px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            overflow: hidden;
+            margin-bottom: 10px;
+            border: 1px solid rgba(46, 139, 87, 0.3);
+            animation: slideIn 0.3s ease;
+        }
+
+        .chatbot.active {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .chatbot-header {
+            background: #2E8B57;
+            color: white;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chatbot-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .chatbot-header-buttons button {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-left: 8px;
+        }
+
+        .chatbot-body {
+            height: calc(100% - 110px);
+            overflow-y: auto;
+            padding: 12px;
+            scrollbar-width: thin;
+            scrollbar-color: #2E8B57 #e6ffe6;
+        }
+
+        .chatbot-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chatbot-body::-webkit-scrollbar-track {
+            background: #e6ffe6;
+            border-radius: 4px;
+        }
+
+        .chatbot-body::-webkit-scrollbar-thumb {
+            background: #2E8B57;
+            border-radius: 4px;
+        }
+
+        .chatbot-message {
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .chatbot-message.bot {
+            align-items: flex-start;
+        }
+
+        .chatbot-message.user {
+            align-items: flex-end;
+        }
+
+        .chatbot-message p {
+            background: #e6ffe6;
+            padding: 8px 12px;
+            border-radius: 12px;
+            margin: 0;
+            max-width: 80%;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .chatbot-message.user p {
+            background: #2E8B57;
+            color: white;
+        }
+
+        .chatbot-message.quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chatbot-message.quick-actions button {
+            background: #2E8B57;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chatbot-message.quick-actions button:hover {
+            background: #3aa66a;
+        }
+
+        .chatbot-input {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .chatbot-input input {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 8px 12px;
+            border-radius: 20px;
+            margin-right: 10px;
+            background: #f0f0f0;
+            transition: border-color 0.2s;
+        }
+
+        .chatbot-input input:focus {
+            outline: none;
+            border-color: #2E8B57;
+        }
+
+        .chatbot-input button {
+            background: #2E8B57;
+            border: none;
+            border-radius: 50%;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chatbot-input button:hover {
+            background: #3aa66a;
+        }
+
+        @media (max-width: 480px) {
+            .chatbot {
+                width: 280px;
+                height: 400px;
+            }
+
+            .chatbot-header h3 {
+                font-size: 1rem;
+            }
+
+            .chatbot-message p {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="#">Home</a></li>
+                <li><a href="#">Study Materials</a></li>
+                <li><a href="#">AI Planner</a></li>
+                <li><a href="#">Motivation</a></li>
+                <li><a href="#">Expert Help</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="hero">
+        <h1>Smart Study Planner</h1>
+        <p>Organize your study sessions, track your progress, and achieve your academic goals with our intelligent and personalized study planner.</p>
+    </div>
+
+    <div class="tabs">
+        <div class="tab-list">
+            <button class="tab-trigger" data-tab="tasks"><i class="fas fa-list"></i> Tasks</button>
+            <button class="tab-trigger" data-tab="calendar"><i class="fas fa-calendar-days"></i> Calendar</button>
+            <button class="tab-trigger" data-tab="goals"><i class="fas fa-award"></i> Goals</button>
+            <button class="tab-trigger" data-tab="stats"><i class="fas fa-chart-bar"></i> Statistics</button>
+        </div>
+
+        <div class="tab-content" id="tasks">
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-book-open"></i> Study Tasks</h2>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label for="subject">Subject</label>
+                        <select id="subject">
+                            <option value="Mathematics">Mathematics</option>
+                            <option value="Science">Science</option>
+                            <option value="History">History</option>
+                            <option value="Literature">Literature</option>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Languages">Languages</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="priority">Priority</label>
+                        <select id="priority">
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="task">Task</label>
+                        <input type="text" id="task" placeholder="Add a new study task...">
+                        <button id="add-task">Add</button>
+                    </div>
+                    <div class="task-list" id="task-list">
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-clock"></i> Study Session</h2>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label for="notes">Study Notes</label>
+                        <textarea id="notes" placeholder="Write your study notes here..." rows="5"></textarea>
+                    </div>
+                    <div class="study-time">
+                        <h3>Record Study Time</h3>
+                        <div class="time-buttons" id="time-buttons">
+                        </div>
+                    </div>
+                    <div class="total-time">
+                        <p>Total Study Time Today: <span id="total-time">0</span> min</p>
+                        <div class="progress-circle" id="progress-circle">0%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="calendar">
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-calendar-days"></i> Study Calendar</h2>
+                </div>
+                <div class="card-content">
+                    <div class="calendar-placeholder">
+                        <p>Calendar goes here</p>
+                    </div>
+                    <div class="selected-date">
+                        <h3 id="selected-date">Selected Date: None</h3>
+                        <p>Click on a date to view or plan your study schedule.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-list"></i> Daily Schedule</h2>
+                </div>
+                <div class="card-content">
+                    <div id="daily-schedule">
+                    </div>
+                    <button id="generate-schedule">Generate AI Study Schedule</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="goals">
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-award"></i> Study Goals</h2>
+                </div>
+                <div class="card-content">
+                    <div class="form-group">
+                        <label for="goal">Goal</label>
+                        <input type="text" id="goal" placeholder="Enter your study goal...">
+                    </div>
+                    <div class="form-group">
+                        <label for="deadline">Deadline</label>
+                        <input type="date" id="deadline">
+                    </div>
+                    <button id="add-goal">Add Goal</button>
+                    <div class="goal-list" id="goal-list">
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-award"></i> Study Achievements</h2>
+                </div>
+                <div class="card-content">
+                    <div class="achievement">
+                        <i class="fas fa-award fa-2x"></i>
+                        <div>
+                            <h4>Consistent Learner</h4>
+                            <p>Studied for <span id="consistent-days">0</span> days in a row</p>
+                        </div>
+                    </div>
+                    <div class="achievement">
+                        <i class="fas fa-clock fa-2x"></i>
+                        <div>
+                            <h4>Focus Master</h4>
+                            <p>Longest session: <span id="longest-session">0</span> minutes</p>
+                        </div>
+                    </div>
+                    <div class="achievement">
+                        <i class="fas fa-book-open fa-2x"></i>
+                        <div>
+                            <h4>Subject Expert</h4>
+                            <p>Completed <span id="completed-tasks">0</span> tasks</p>
+                        </div>
+                    </div>
+                    <div class="achievement locked">
+                        <i class="fas fa-award fa-2x"></i>
+                        <div>
+                            <h4>Goal Crusher</h4>
+                            <p>Complete <span id="goals-needed">5</span> study goals to unlock</p>
+                            <div class="progress-bar"><div id="goal-progress" style="width: 0%;"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="stats">
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-chart-bar"></i> Study Statistics</h2>
+                </div>
+                <div class="card-content">
+                    <div id="subject-stats">
+                    </div>
+                    <div class="summary" id="stats-summary">
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-book-open"></i> Study Recommendations</h2>
+                </div>
+                <div class="card-content">
+                    <div id="recommendations">
+                    </div>
+                    <button id="get-plan">Get Personalized Study Plan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chatbot -->
+    <div class="chatbot-container">
+        <button class="chatbot-toggle" title="Open Study Buddy">
+            <i class="fas fa-comment-dots"></i>
+        </button>
+        <div class="chatbot">
+            <div class="chatbot-header">
+                <h3>Study Buddy</h3>
+                <div class="chatbot-header-buttons">
+                    <button class="chatbot-clear" title="Clear Chat">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="chatbot-close" title="Close Chatbot">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="chatbot-body" id="chatbot-body">
+                <div class="chatbot-message bot">
+                    <p>Welcome to Study Buddy! I'm here to help with your studies. What would you like to do?</p>
+                </div>
+                <div class="chatbot-message bot quick-actions">
+                    <button data-action="tips">Study Tips</button>
+                    <button data-action="tasks">View Tasks</button>
+                    <button data-action="schedule">Check Schedule</button>
+                    <button data-action="goals">Set Goals</button>
+                </div>
+            </div>
+            <div class="chatbot-input">
+                <input type="text" id="chatbot-input" placeholder="Ask about study tips, tasks, or schedule...">
+                <button id="chatbot-send">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2023 social. All rights reserved.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Tab functionality
+            const tabTriggers = document.querySelectorAll('.tab-trigger');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            tabTriggers.forEach(trigger => {
+                trigger.addEventListener('click', () => {
+                    const tab = trigger.getAttribute('data-tab');
+                    tabTriggers.forEach(t => t.classList.remove('active'));
+                    trigger.classList.add('active');
+                    tabContents.forEach(content => {
+                        content.classList.toggle('active', content.id === tab);
+                    });
+                });
+            });
+
+            tabTriggers[0].click();
+
+            // Data storage
+            let tasks = JSON.parse(localStorage.getItem('tasks')) || [
+                { id: 1, subject: 'Mathematics', priority: 'high', task: 'Study Mathematics - Chapter 5', completed: false },
+                { id: 2, subject: 'Science', priority: 'medium', task: 'Read Science Notes - Biology', completed: true },
+                { id: 3, subject: 'History', priority: 'low', task: 'Complete History Assignment', completed: false }
+            ];
+            let studySessions = JSON.parse(localStorage.getItem('studySessions')) || [
+                { date: new Date().toISOString().split('T')[0], subject: 'Mathematics', duration: 60, notes: '' },
+                { date: new Date().toISOString().split('T')[0], subject: 'Science', duration: 45, notes: '' },
+                { date: new Date().toISOString().split('T')[0], subject: 'History', duration: 30, notes: '' }
+            ];
+            let goals = JSON.parse(localStorage.getItem('goals')) || [
+                { id: 1, goal: 'Complete calculus review', deadline: '2025-05-10' },
+                { id: 2, goal: 'Read 3 chapters of history book', deadline: '2025-05-15' }
+            ];
+            let achievements = JSON.parse(localStorage.getItem('achievements')) || {
+                consistentDays: 0,
+                longestSession: 0,
+                completedTasks: tasks.filter(t => t.completed).length,
+                completedGoals: 0
+            };
+
+            // Task Management
+            const taskList = document.getElementById('task-list');
+            const addTaskBtn = document.getElementById('add-task');
+            const taskInput = document.getElementById('task');
+            const subjectSelect = document.getElementById('subject');
+            const prioritySelect = document.getElementById('priority');
+
+            function renderTasks() {
+                taskList.innerHTML = '';
+                tasks.forEach(task => {
+                    const taskElement = document.createElement('div');
+                    taskElement.className = `task ${task.completed ? 'completed' : ''}`;
+                    taskElement.innerHTML = `
+                        <input type="checkbox" id="task-${task.id}" ${task.completed ? 'checked' : ''}>
+                        <label for="task-${task.id}">${task.task}</label>
+                        <span class="badge">${task.subject}</span>
+                        <span class="badge ${task.priority}">${task.priority}</span>
+                    `;
+                    taskList.appendChild(taskElement);
+
+                    const checkbox = taskElement.querySelector('input[type="checkbox"]');
+                    checkbox.addEventListener('change', () => {
+                        task.completed = checkbox.checked;
+                        if (task.completed) achievements.completedTasks++;
+                        localStorage.setItem('tasks', JSON.stringify(tasks));
+                        localStorage.setItem('achievements', JSON.stringify(achievements));
+                        renderTasks();
+                        updateAchievements();
+                        updateStats();
+                    });
+                });
+            }
+
+            addTaskBtn.addEventListener('click', () => {
+                const taskText = taskInput.value.trim();
+                if (taskText) {
+                    const newTask = {
+                        id: Date.now(),
+                        subject: subjectSelect.value,
+                        priority: prioritySelect.value,
+                        task: taskText,
+                        completed: false
+                    };
+                    tasks.push(newTask);
+                    localStorage.setItem('tasks', JSON.stringify(tasks));
+                    taskInput.value = '';
+                    renderTasks();
+                }
+            });
+
+            // Study Session Tracking
+            const timeButtons = document.getElementById('time-buttons');
+            const totalTimeDisplay = document.getElementById('total-time');
+            const progressCircle = document.getElementById('progress-circle');
+            const notesTextarea = document.getElementById('notes');
+
+            function renderTimeButtons() {
+                timeButtons.innerHTML = '';
+                const subjects = ['Mathematics', 'Science', 'History', 'Literature'];
+                const durations = [30, 45];
+                durations.forEach(duration => {
+                    subjects.forEach(subject => {
+                        const button = document.createElement('button');
+                        button.innerHTML = `<span>${duration} min</span><span>${subject}</span>`;
+                        button.addEventListener('click', () => {
+                            const today = new Date().toISOString().split('T')[0];
+                            const session = {
+                                date: today,
+                                subject: subject,
+                                duration: duration,
+                                notes: notesTextarea.value
+                            };
+                            studySessions.push(session);
+                            localStorage.setItem('studySessions', JSON.stringify(studySessions));
+                            if (duration > achievements.longestSession) {
+                                achievements.longestSession = duration;
+                                localStorage.setItem('achievements', JSON.stringify(achievements));
+                            }
+                            updateStudyTime();
+                            updateAchievements();
+                            updateStats();
+                        });
+                        timeButtons.appendChild(button);
+                    });
+                });
+            }
+
+            function updateStudyTime() {
+                const today = new Date().toISOString().split('T')[0];
+                const todaySessions = studySessions.filter(session => session.date === today);
+                const totalMinutes = todaySessions.reduce((sum, session) => sum + session.duration, 0);
+                totalTimeDisplay.textContent = totalMinutes;
+                const progress = Math.min(Math.round((totalMinutes / 240) * 100), 100); // 240 min = 4 hr goal
+                progressCircle.textContent = `${progress}%`;
+            }
+
+            // Calendar and Schedule (Simplified)
+            const selectedDateDisplay = document.getElementById('selected-date');
+            const dailySchedule = document.getElementById('daily-schedule');
+            const generateScheduleBtn = document.getElementById('generate-schedule');
+            let selectedDate = null;
+
+            function renderDailySchedule() {
+                dailySchedule.innerHTML = '';
+                if (!selectedDate) {
+                    dailySchedule.innerHTML = '<p>Select a date to view schedule</p>';
+                    return;
+                }
+                const dateStr = selectedDate.toISOString().split('T')[0];
+                const sessions = studySessions.filter(session => session.date === dateStr);
+                if (sessions.length === 0) {
+                    dailySchedule.innerHTML = '<p>No study sessions scheduled for this day</p>';
+                    return;
+                }
+                sessions.forEach(session => {
+                    const sessionElement = document.createElement('div');
+                    sessionElement.className = 'schedule-item';
+                    sessionElement.innerHTML = `
+                        <div>
+                            <span>Study Session</span>
+                            <h4>${session.subject}</h4>
+                        </div>
+                        <span class="badge">${session.duration} min</span>
+                    `;
+                    dailySchedule.appendChild(sessionElement);
+                });
+            }
+
+            document.querySelector('.calendar-placeholder').addEventListener('click', () => {
+                selectedDate = new Date(2025, 4, 5); // Static date for now
+                selectedDateDisplay.textContent = `Selected Date: ${selectedDate.toDateString()}`;
+                renderDailySchedule();
+            });
+
+            generateScheduleBtn.addEventListener('click', () => {
+                if (!selectedDate) {
+                    alert('Please select a date first');
+                    return;
+                }
+                const dateStr = selectedDate.toISOString().split('T')[0];
+                studySessions = studySessions.filter(session => session.date !== dateStr);
+                const incompleteTasks = tasks.filter(task => !task.completed);
+                const subjects = [...new Set(incompleteTasks.map(task => task.subject))];
+                subjects.forEach(subject => {
+                    studySessions.push({
+                        date: dateStr,
+                        subject: subject,
+                        duration: 60,
+                        notes: `AI-generated session for ${subject}`
+                    });
+                });
+                localStorage.setItem('studySessions', JSON.stringify(studySessions));
+                renderDailySchedule();
+                updateStudyTime();
+                updateStats();
+                alert('AI-generated schedule created!');
+            });
+
+            // Goal Management
+            const goalList = document.getElementById('goal-list');
+            const addGoalBtn = document.getElementById('add-goal');
+            const goalInput = document.getElementById('goal');
+            const deadlineInput = document.getElementById('deadline');
+
+            function renderGoals() {
+                goalList.innerHTML = '';
+                goals.forEach(goal => {
+                    const deadline = new Date(goal.deadline);
+                    const today = new Date();
+                    const timeDiff = deadline.getTime() - today.getTime();
+                    const daysLeft = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                    const goalElement = document.createElement('div');
+                    goalElement.className = 'goal';
+                    goalElement.innerHTML = `
+                        <h4>${goal.goal}</h4>
+                        <span>Deadline: ${deadline.toDateString()}</span>
+                        <span class="badge">${daysLeft} days left</span>
+                    `;
+                    goalList.appendChild(goalElement);
+                });
+            }
+
+            addGoalBtn.addEventListener('click', () => {
+                const goalText = goalInput.value.trim();
+                const deadline = deadlineInput.value;
+                if (goalText && deadline) {
+                    const newGoal = {
+                        id: Date.now(),
+                        goal: goalText,
+                        deadline: deadline
+                    };
+                    goals.push(newGoal);
+                    localStorage.setItem('goals', JSON.stringify(goals));
+                    goalInput.value = '';
+                    deadlineInput.value = '';
+                    renderGoals();
+                }
+            });
+
+            // Achievements
+            function updateAchievements() {
+                document.getElementById('consistent-days').textContent = achievements.consistentDays;
+                document.getElementById('longest-session').textContent = achievements.longestSession;
+                document.getElementById('completed-tasks').textContent = achievements.completedTasks;
+                document.getElementById('goals-needed').textContent = 5 - achievements.completedGoals;
+                document.getElementById('goal-progress').style.width = `${(achievements.completedGoals / 5) * 100}%`;
+            }
+
+            // Statistics
+            const subjectStats = document.getElementById('subject-stats');
+            const statsSummary = document.getElementById('stats-summary');
+
+            function updateStats() {
+                const subjectTotals = {};
+                studySessions.forEach(session => {
+                    subjectTotals[session.subject] = (subjectTotals[session.subject] || 0) + session.duration;
+                });
+                const totalMinutes = Object.values(subjectTotals).reduce((sum, duration) => sum + duration, 0);
+                subjectStats.innerHTML = '';
+                for (const subject in subjectTotals) {
+                    const percentage = totalMinutes ? Math.round((subjectTotals[subject] / totalMinutes) * 100) : 0;
+                    const statElement = document.createElement('div');
+                    statElement.className = 'stat';
+                    statElement.innerHTML = `
+                        <div><span>${subject}</span><span>${subjectTotals[subject]} minutes</span></div>
+                        <div class="progress-bar"><div style="width: ${percentage}%;"></div></div>
+                    `;
+                    subjectStats.appendChild(statElement);
+                }
+                const completedTasks = tasks.filter(task => task.completed).length;
+                const completionRate = tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0;
+                statsSummary.innerHTML = `
+                    <div class="summary-item"><h4>${totalMinutes}</h4><p>Total Minutes</p></div>
+                    <div class="summary-item"><h4>${studySessions.length}</h4><p>Study Sessions</p></div>
+                    <div class="summary-item"><h4>${completedTasks}</h4><p>Tasks Completed</p></div>
+                    <div class="summary-item"><h4>${completionRate}%</h4><p>Completion Rate</p></div>
+                `;
+            }
+
+            // Recommendations
+            const recommendations = document.getElementById('recommendations');
+            const getPlanBtn = document.getElementById('get-plan');
+
+            function updateRecommendations() {
+                const subjectTotals = {};
+                studySessions.forEach(session => {
+                    subjectTotals[session.subject] = (subjectTotals[session.subject] || 0) + session.duration;
+                });
+                const leastStudied = Object.keys(subjectTotals).reduce((min, subject) => 
+                    (!min || subjectTotals[subject] < subjectTotals[min]) ? subject : min, null);
+                recommendations.innerHTML = `
+                    <div class="recommendation">
+                        <h4>Increase ${leastStudied || 'Subject'} Focus</h4>
+                        <p>Spend more time on ${leastStudied || 'your subjects'} to balance your study.</p>
+                    </div>
+                    <div class="recommendation">
+                        <h4>Try the Pomodoro Method</h4>
+                        <p>For better focus, try 25-minute study sessions with 5-minute breaks.</p>
+                    </div>
+                    <div class="recommendation">
+                        <h4>Complete Regular Reviews</h4>
+                        <p>Schedule weekly reviews to improve retention.</p>
+                    </div>
+                `;
+            }
+
+            getPlanBtn.addEventListener('click', () => {
+                updateRecommendations();
+                alert('Personalized study plan updated!');
+            });
+
+            // Chatbot Functionality
+            const chatbotToggle = document.querySelector('.chatbot-toggle');
+            const chatbot = document.querySelector('.chatbot');
+            const chatbotClose = document.querySelector('.chatbot-close');
+            const chatbotClear = document.querySelector('.chatbot-clear');
+            const chatbotInput = document.getElementById('chatbot-input');
+            const chatbotSend = document.getElementById('chatbot-send');
+            const chatbotBody = document.getElementById('chatbot-body');
+
+            function addMessage(text, isUser, isQuickActions = false) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chatbot-message ${isUser ? 'user' : 'bot'} ${isQuickActions ? 'quick-actions' : ''}`;
+                if (isQuickActions) {
+                    messageDiv.innerHTML = text;
+                } else {
+                    messageDiv.innerHTML = `<p>${text}</p>`;
+                }
+                chatbotBody.appendChild(messageDiv);
+                chatbotBody.scrollTo({ top: chatbotBody.scrollHeight, behavior: 'smooth' });
+            }
+
+            function resetChat() {
+                chatbotBody.innerHTML = `
+                    <div class="chatbot-message bot">
+                        <p>Welcome to Study Buddy! I'm here to help with your studies. What would you like to do?</p>
+                    </div>
+                    <div class="chatbot-message bot quick-actions">
+                        <button data-action="tips">Study Tips</button>
+                        <button data-action="tasks">View Tasks</button>
+                        <button data-action="schedule">Check Schedule</button>
+                        <button data-action="goals">Set Goals</button>
+                    </div>
+                `;
+                chatbotBody.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            function handleUserInput(text) {
+                const userText = text.trim().toLowerCase();
+                if (!userText) return;
+
+                addMessage(userText, true);
+                let response = "I'm not sure how to help with that. Try asking about study tips, tasks, or your schedule!";
+                
+                if (userText.includes('study tip') || userText.includes('tips') || userText === 'tips') {
+                    response = "Try the Pomodoro Technique: study for 25 minutes, then take a 5-minute break. It boosts focus!";
+                } else if (userText.includes('schedule') || userText.includes('plan') || userText === 'schedule') {
+                    response = `You have ${studySessions.length} study sessions today. Check the Calendar tab or click 'Generate AI Study Schedule' to create a plan!`;
+                } else if (userText.includes('task') || userText.includes('tasks') || userText === 'tasks') {
+                    const incompleteTasks = tasks.filter(task => !task.completed);
+                    response = `You have ${incompleteTasks.length} incomplete tasks. Go to the Tasks tab to add or complete them!`;
+                } else if (userText.includes('goal') || userText.includes('goals') || userText === 'goals') {
+                    response = `You have ${goals.length} active goals. Visit the Goals tab to set new ones or track progress!`;
+                }
+
+                setTimeout(() => addMessage(response, false), 500);
+            }
+
+            chatbotToggle.addEventListener('click', () => {
+                chatbot.classList.toggle('active');
+                if (chatbot.classList.contains('active')) {
+                    chatbotInput.focus();
+                }
+            });
+
+            chatbotClose.addEventListener('click', () => {
+                chatbot.classList.remove('active');
+            });
+
+            chatbotClear.addEventListener('click', resetChat);
+
+            chatbotSend.addEventListener('click', () => {
+                handleUserInput(chatbotInput.value);
+                chatbotInput.value = '';
+            });
+
+            chatbotInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleUserInput(chatbotInput.value);
+                    chatbotInput.value = '';
+                }
+            });
+
+            // Quick Action Buttons
+            chatbotBody.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON' && e.target.dataset.action) {
+                    const action = e.target.dataset.action;
+                    handleUserInput(action);
+                }
+            });
+
+            // Initialize
+            renderTasks();
+            renderTimeButtons();
+            renderGoals();
+            updateStudyTime();
+            updateAchievements();
+            updateStats();
+            updateRecommendations();
+        });
+    </script>
+</body>
+</html>

@@ -167,6 +167,9 @@ def material3512(request):
 def material3612(request):
     return render(request, 'bank/material3612.html')
 
+def planner(request):
+    return render(request, 'bank/planner.html')
+
 def logout_view(request):
     logout(request)
     return redirect('login')

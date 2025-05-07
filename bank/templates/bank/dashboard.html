@@ -165,7 +165,7 @@
             font-weight: 700;
             font-size: 1.8rem;
             background: var(--gradient-green);
-            
+            -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -292,7 +292,7 @@
             font-size: 2.5rem;
             margin-bottom: 1rem;
             background: var(--gradient-green);
-            
+            -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             animation: fadeInDown 1s;
         }
@@ -502,7 +502,7 @@
         .section-title h2 {
             font-size: 2rem;
             background: var(--gradient-green);
-            
+            -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             position: relative;
             display: inline-block;
@@ -1155,8 +1155,9 @@
             <h2>Your Personal AI Study Planner</h2>
             <p>Get a customized study schedule based on your exam dates, strengths, and weaknesses. Our AI will optimize
                 your study time for maximum efficiency.</p>
+                <a class=link href="{% url 'planner' %}">   
             <button class="btn btn-solid" style="background: white; color: var(--primary-green);">Create My Study
-                Plan</button>
+                Plan</button></a>
         </div>
     </section>
 

@@ -50,5 +50,6 @@ urlpatterns = [
     path('material3412/', views.material3412, name='material3412'),
     path('material3512/', views.material3512, name='material3512'),
     path('material3612/', views.material3612, name='material3612'),
+    path('planner/', views.planner, name='planner'),
     
 ]
